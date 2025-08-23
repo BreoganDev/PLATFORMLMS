@@ -5,8 +5,8 @@ import { BookOpen } from 'lucide-react'
 import { RegisterForm } from '@/components/auth/register-form'
 
 export const metadata: Metadata = {
-  title: 'Registro - EduHub',
-  description: 'Crea tu cuenta en EduHub',
+  title: 'Registro - Maternidad en Calma',
+  description: 'Crea tu cuenta en Maternidad en Calma',
 }
 
 export default function RegisterPage() {
@@ -22,7 +22,7 @@ export default function RegisterPage() {
             Crear Cuenta
           </h1>
           <p className="text-sm text-muted-foreground">
-            Únete a EduHub y comienza a aprender
+            Únete a Maternidad en Calma y comienza a aprender
           </p>
         </div>
         <RegisterForm />

@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -14,7 +13,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Loader2, Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { loginSchema } from '@/lib/validations'
+
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Email inválido' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
+})
 
 type FormData = z.infer<typeof loginSchema>
 
@@ -35,24 +38,32 @@ export function LoginForm() {
   })
 
   const onSubmit = async (data: FormData) => {
+    console.log('🚀 Intentando login con:', { email: data.email })
     setIsLoading(true)
 
     try {
       const result = await signIn('credentials', {
-        email: data?.email,
-        password: data?.password,
+        email: data.email,
+        password: data.password,
         redirect: false,
       })
 
+      console.log('📡 Resultado del login:', result)
+
       if (result?.error) {
-        toast.error('Credenciales inválidas')
+        console.error('❌ Error en login:', result.error)
+        toast.error('Email o contraseña incorrectos')
         return
       }
 
-      toast.success('¡Bienvenido de vuelta!')
-      router.push(callbackUrl)
-      router.refresh()
+      if (result?.ok) {
+        console.log('✅ Login exitoso, redirigiendo a:', callbackUrl)
+        toast.success('¡Bienvenido de vuelta!')
+        router.push(callbackUrl)
+        router.refresh()
+      }
     } catch (error) {
+      console.error('💥 Error inesperado:', error)
       toast.error('Error al iniciar sesión')
     } finally {
       setIsLoading(false)
@@ -125,6 +136,13 @@ export function LoginForm() {
             )}
           </Button>
         </form>
+
+        {/* Credenciales de prueba */}
+        <div className="mt-4 p-3 bg-muted rounded-md">
+          <p className="text-xs text-muted-foreground mb-2">Credenciales de prueba:</p>
+          <p className="text-xs"><strong>Admin:</strong> admin@eduhub.com / admin123</p>
+          <p className="text-xs"><strong>Usuario:</strong> john@doe.com / student123</p>
+        </div>
       </CardContent>
     </Card>
   )

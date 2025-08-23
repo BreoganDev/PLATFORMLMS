@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +6,29 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { db } from '@/lib/db'
 import { formatPrice } from '@/lib/utils'
+
+// Define the course type for proper typing
+interface CourseWithDetails {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  coverImage: string | null
+  level: string
+  price: number
+  category: {
+    id: string
+    name: string
+  }
+  instructor: {
+    id: string
+    name: string | null
+  }
+  _count: {
+    enrollments: number
+    modules: number
+  }
+}
 
 export default async function HomePage() {
   const featuredCourses = await db.course.findMany({
@@ -35,7 +57,7 @@ export default async function HomePage() {
         <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">EduHub</span>
+            <span className="text-2xl font-bold">Maternidad en Calma</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
@@ -67,11 +89,11 @@ export default async function HomePage() {
             <div className="space-y-8">
               <div className="space-y-4">
                 <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
-                  Aprende sin límites con
-                  <span className="text-primary block">EduHub</span>
+                  Para madres, padres, tias, abuelas...
+                  <span className="text-primary block">Maternidad en Calma</span>
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">
-                  Accede a cursos de alta calidad, aprende de expertos y transforma tu carrera profesional
+                  Aprende a estar en calma, gestionarte, nutrición, psicología como también peinar fácil a diario y/o dar el salto profesional con Entrenzarte-PRO.
                 </p>
               </div>
               
@@ -83,7 +105,7 @@ export default async function HomePage() {
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <Link href="/register">Comenzar Gratis</Link>
+                  <Link href="/register">Comenzar</Link>
                 </Button>
               </div>
 
@@ -182,7 +204,7 @@ export default async function HomePage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredCourses?.map((course) => (
+              {featuredCourses?.map((course: CourseWithDetails) => (
                 <Card key={course?.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative aspect-video bg-muted">
                     {course?.coverImage ? (

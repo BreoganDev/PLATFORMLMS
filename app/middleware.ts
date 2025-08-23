@@ -1,4 +1,3 @@
-
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
@@ -6,6 +5,11 @@ export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
     const token = req.nextauth.token
+
+    // ✅ NUEVO: si ya está logueado y entra a /login o /register, lo mando al dashboard
+    if ((pathname === '/login' || pathname === '/register') && token) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
 
     // Admin routes
     if (pathname?.startsWith('/admin')) {
@@ -27,20 +31,24 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
-        
+
         // Public routes
-        if (pathname === '/' || pathname === '/courses' || pathname?.startsWith('/course/') && !pathname?.includes('/learn')) {
+        if (
+          pathname === '/' ||
+          pathname === '/courses' ||
+          (pathname?.startsWith('/course/') && !pathname?.includes('/learn')) ||
+          // ✅ NUEVO: /login y /register SIEMPRE permitidos (evita bucle)
+          pathname === '/login' ||
+          pathname === '/register'
+        ) {
           return true
         }
 
-        // Auth routes - redirect if already logged in
-        if ((pathname === '/login' || pathname === '/register') && token) {
-          return false
-        }
-
+        // Resto: requiere sesión
         return !!token
       },
     },
+    pages: { signIn: '/login' },
   }
 )
 

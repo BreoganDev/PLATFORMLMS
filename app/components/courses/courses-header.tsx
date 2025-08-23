@@ -14,7 +14,7 @@ export function CoursesHeader() {
       <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2">
           <BookOpen className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">EduHub</span>
+          <span className="text-2xl font-bold">Rosa Delia Cabrera</span>
         </Link>
         
         <nav className="hidden md:flex items-center space-x-6">

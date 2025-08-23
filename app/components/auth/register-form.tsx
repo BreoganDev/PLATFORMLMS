@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -13,7 +12,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Loader2, Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
-import { registerSchema } from '@/lib/validations'
+
+const registerSchema = z.object({
+  name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
+  email: z.string().email({ message: 'Email inválido' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
+})
 
 type FormData = z.infer<typeof registerSchema>
 
@@ -33,6 +41,11 @@ export function RegisterForm() {
   })
 
   const onSubmit = async (data: FormData) => {
+    console.log('🚀 Intentando registro con:', { 
+      name: data.name, 
+      email: data.email,
+      password: '***'
+    })
     setIsLoading(true)
 
     try {
@@ -40,22 +53,27 @@ export function RegisterForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data?.name,
-          email: data?.email,
-          password: data?.password,
+          name: data.name,
+          email: data.email,
+          password: data.password,
         }),
       })
 
+      console.log('📡 Respuesta del registro:', response.status)
       const result = await response.json()
+      console.log('📊 Datos de respuesta:', result)
 
       if (!response.ok) {
+        console.error('❌ Error en registro:', result.error)
         toast.error(result?.error || 'Error al crear la cuenta')
         return
       }
 
+      console.log('✅ Registro exitoso')
       toast.success('¡Cuenta creada exitosamente!')
       router.push('/login')
     } catch (error) {
+      console.error('💥 Error inesperado:', error)
       toast.error('Error al crear la cuenta')
     } finally {
       setIsLoading(false)

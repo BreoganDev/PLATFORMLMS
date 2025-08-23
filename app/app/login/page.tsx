@@ -5,8 +5,8 @@ import { BookOpen } from 'lucide-react'
 import { LoginForm } from '@/components/auth/login-form'
 
 export const metadata: Metadata = {
-  title: 'Iniciar Sesión - EduHub',
-  description: 'Accede a tu cuenta de EduHub',
+  title: 'Iniciar Sesión - Maternidad en Calma',
+  description: 'Accede a tu cuenta de Maternidad en Calma',
 }
 
 export default function LoginPage() {

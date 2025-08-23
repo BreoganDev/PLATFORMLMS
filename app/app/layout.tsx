@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -9,8 +8,8 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'EduHub - Plataforma de Aprendizaje Online',
-  description: 'Descubre cursos de calidad y aprende a tu ritmo con los mejores instructores',
+  title: 'Aprende, conecta y crea con Maternidad en Calma - Plataforma de Aprendizaje Online',
+  description: 'Maternidad en calma, cursos de trenzas para madres y Entrenzarte Pro en un solo lugar.',
 }
 
 export default function RootLayout({

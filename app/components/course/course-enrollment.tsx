@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -8,17 +7,16 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/utils'
 import { ShoppingCart, Play, CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 interface CourseEnrollmentProps {
   course: any
   isEnrolled: boolean
   userId?: string
+  session?: any // Pasamos la sesión como prop
 }
 
-export function CourseEnrollment({ course, isEnrolled, userId }: CourseEnrollmentProps) {
-  const { data: session } = useSession() || {}
+export function CourseEnrollment({ course, isEnrolled, userId, session }: CourseEnrollmentProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleEnrollment = async () => {
