@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -84,12 +83,34 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
         throw new Error(data.error || 'Error al actualizar el curso')
       }
 
-      router.push('/admin')
+      router.push('/admin/courses')
       router.refresh()
     } catch (error: any) {
       setError(error.message)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este curso? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/courses/${params.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        router.push('/admin/courses')
+        router.refresh()
+      } else {
+        const error = await response.json()
+        setError(error.error || 'Error al eliminar el curso')
+      }
+    } catch (error) {
+      setError('Error al eliminar el curso')
     }
   }
 
@@ -109,8 +130,8 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Curso no encontrado</h1>
-          <Link href="/admin" className="text-blue-600 hover:text-blue-700">
-            Volver al admin
+          <Link href="/admin/courses" className="text-blue-600 hover:text-blue-700">
+            Volver a cursos
           </Link>
         </div>
       </div>
@@ -128,7 +149,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
               <span className="text-xl font-bold text-gray-900">LMS Admin</span>
             </div>
             <Link
-              href="/admin"
+              href="/admin/courses"
               className="text-gray-600 hover:text-blue-600 inline-flex items-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -145,7 +166,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
             Editar Curso
           </h1>
           <p className="text-gray-600 mt-2">
-            Actualiza la información de tu curso
+            Modifica la información del curso
           </p>
         </div>
 
@@ -170,8 +191,8 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Introducción a React.js"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ingresa el título del curso"
                 />
               </div>
 
@@ -184,76 +205,88 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe de qué trata tu curso..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe el contenido y objetivos del curso"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio (USD) *
-                  </label>
-                  <input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="29.99"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="vimeoVideoId" className="block text-sm font-medium text-gray-700 mb-2">
-                    ID de Video Vimeo
-                  </label>
-                  <input
-                    id="vimeoVideoId"
-                    type="text"
-                    value={vimeoVideoId}
-                    onChange={(e) => setVimeoVideoId(e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="123456789"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Obtén el ID numérico de la URL de Vimeo
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center">
+              <div>
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                  Precio (€) *
+                </label>
                 <input
-                  id="isPublished"
-                  type="checkbox"
-                  checked={isPublished}
-                  onChange={(e) => setIsPublished(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  id="price"
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
                 />
-                <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700">
-                  Curso publicado (visible para los estudiantes)
+                <p className="text-xs text-gray-500 mt-1">
+                  Ingresa 0 para hacer el curso gratuito
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="vimeoVideoId" className="block text-sm font-medium text-gray-700 mb-2">
+                  ID de Video de Vimeo (Opcional)
+                </label>
+                <input
+                  id="vimeoVideoId"
+                  type="text"
+                  value={vimeoVideoId}
+                  onChange={(e) => setVimeoVideoId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="123456789"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Solo el ID numérico del video de Vimeo para el trailer
+                </p>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={isPublished}
+                    onChange={(e) => setIsPublished(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Publicar curso (visible para estudiantes)
+                  </span>
                 </label>
               </div>
 
-              <div className="flex items-center gap-4 pt-6 border-t">
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
                 <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  type="button"
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
                 >
-                  <Save className="h-5 w-5" />
-                  {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar Curso
                 </button>
-                
-                <Link
-                  href="/admin"
-                  className="text-gray-600 hover:text-gray-800 px-6 py-3 transition-colors"
-                >
-                  Cancelar
-                </Link>
+
+                <div className="flex space-x-3">
+                  <Link
+                    href="/admin/courses"
+                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                  >
+                    Cancelar
+                  </Link>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

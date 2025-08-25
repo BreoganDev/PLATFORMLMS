@@ -30,6 +30,7 @@ export function createSlug(text: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // remove accents
     .replace(/[^a-z0-9 -]/g, '') // remove invalid chars
+    .trim()
     .replace(/\s+/g, '-') // collapse whitespace and replace by -
     .replace(/-+/g, '-') // collapse dashes
     .replace(/^-+/, '') // trim - from start of text

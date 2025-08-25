@@ -1,4 +1,3 @@
-
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
@@ -90,14 +89,13 @@ export async function POST(req: Request) {
       },
     })
 
-    // Create pending order
-    await db.order.create({
+    // Create pending purchase (usando Purchase en lugar de Order)
+    await db.purchase.create({
       data: {
         userId: session?.user?.id,
         courseId: course?.id,
-        totalAmount: course?.price,
-        status: 'PENDING',
         stripeSessionId: stripeSession?.id,
+        status: 'pending',
       },
     })
 

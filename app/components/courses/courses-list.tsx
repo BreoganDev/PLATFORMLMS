@@ -1,4 +1,3 @@
-
 import { db } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,8 +19,8 @@ export async function CoursesList({ searchParams }: CoursesListProps) {
       isPublished: true,
       ...(search && {
         OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
+          { title: { contains: search } },
+          { description: { contains: search } },
         ],
       }),
       ...(category && category !== 'all' && {
@@ -33,9 +32,18 @@ export async function CoursesList({ searchParams }: CoursesListProps) {
     },
     include: {
       category: true,
-      instructor: true,
+      instructor: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      },
       _count: {
-        select: { enrollments: true, modules: true },
+        select: { 
+          enrollments: true, 
+          modules: true 
+        },
       },
     },
     orderBy: { createdAt: 'desc' },
@@ -81,7 +89,7 @@ export async function CoursesList({ searchParams }: CoursesListProps) {
                 </div>
               )}
               <div className="absolute top-4 left-4">
-                <Badge variant="secondary">{course?.category?.name}</Badge>
+                <Badge variant="secondary">{course?.category?.name || 'Sin categoría'}</Badge>
               </div>
               {course?.price === 0 && (
                 <div className="absolute top-4 right-4">
@@ -103,7 +111,7 @@ export async function CoursesList({ searchParams }: CoursesListProps) {
               <CardTitle className="line-clamp-2">{course?.title}</CardTitle>
               <div className="flex items-center text-sm text-muted-foreground">
                 <User className="h-4 w-4 mr-1" />
-                {course?.instructor?.name}
+                {course?.instructor?.name || 'Instructor'}
               </div>
             </CardHeader>
 

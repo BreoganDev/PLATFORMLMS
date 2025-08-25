@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { db } from '@/lib/db'
 import { formatPrice } from '@/lib/utils'
 
-// Define the course type for proper typing
+// Tipo corregido que coincide con los datos de Prisma
 interface CourseWithDetails {
   id: string
   title: string
@@ -19,10 +19,16 @@ interface CourseWithDetails {
   category: {
     id: string
     name: string
-  }
+    slug: string
+    description: string | null
+    icon: string | null
+    createdAt: Date
+    updatedAt: Date
+  } | null
   instructor: {
     id: string
     name: string | null
+    email: string
   }
   _count: {
     enrollments: number
@@ -35,7 +41,13 @@ export default async function HomePage() {
     where: { isPublished: true },
     include: {
       category: true,
-      instructor: true,
+      instructor: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      },
       _count: {
         select: { enrollments: true, modules: true }
       }
@@ -57,7 +69,7 @@ export default async function HomePage() {
         <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">Maternidad en Calma</span>
+            <span className="text-2xl font-bold">Rosa Delia Cabrera</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
@@ -140,7 +152,7 @@ export default async function HomePage() {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold">¿Por qué elegir EduHub?</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold">¿Por qué elegir a Rosa Delia Cabrera?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Te ofrecemos la mejor experiencia de aprendizaje online con herramientas modernas y contenido de calidad
             </p>
@@ -156,7 +168,7 @@ export default async function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Cursos creados por expertos de la industria con contenido actualizado y práctico
+                  Cursos creados por expertas del bienestar mental, emocional, nutricional, gestión, planificación, conecta contigo misma y con los demás
                 </p>
               </CardContent>
             </Card>
@@ -170,7 +182,7 @@ export default async function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Conecta con otros estudiantes y participa en una comunidad de aprendizaje colaborativo
+                  Conecta con otras madres y participa en una comunidad de aprendizaje colaborativo
                 </p>
               </CardContent>
             </Card>
@@ -199,12 +211,12 @@ export default async function HomePage() {
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl lg:text-4xl font-bold">Cursos Destacados</h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Descubre nuestros cursos más populares y comienza tu viaje de aprendizaje
+                Descubre nuestros cursos más populares y comienza tu viaje hacia Ti y hacia tu Calma y Conexión
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredCourses?.map((course: CourseWithDetails) => (
+              {featuredCourses?.map((course) => (
                 <Card key={course?.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative aspect-video bg-muted">
                     {course?.coverImage ? (
@@ -220,7 +232,7 @@ export default async function HomePage() {
                       </div>
                     )}
                     <div className="absolute top-4 left-4">
-                      <Badge variant="secondary">{course?.category?.name}</Badge>
+                      <Badge variant="secondary">{course?.category?.name || 'Sin categoría'}</Badge>
                     </div>
                   </div>
 
@@ -237,7 +249,7 @@ export default async function HomePage() {
                     <CardTitle className="line-clamp-2">{course?.title}</CardTitle>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <User className="h-4 w-4 mr-1" />
-                      {course?.instructor?.name}
+                      {course?.instructor?.name || 'Instructor'}
                     </div>
                   </CardHeader>
 
@@ -278,10 +290,10 @@ export default async function HomePage() {
         <div className="container mx-auto max-w-7xl px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-8">
             <h2 className="text-3xl lg:text-4xl font-bold">
-              ¿Listo para comenzar tu viaje de aprendizaje?
+              ¿List@ para comenzar tu viaje con destino tu Calma, Conexión y Plenitud?
             </h2>
             <p className="text-xl opacity-90">
-              Únete a miles de estudiantes que ya están transformando sus carreras con EduHub
+              Únete a los demás usuari@s que ya están transformando sus vidas con Rosa Delia Cabrera
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="secondary" asChild>
@@ -290,7 +302,7 @@ export default async function HomePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary" asChild>
+              <Button size="lg" variant="outline" className="border-white text-black hover:bg-white hover:text-primary" asChild>
                 <Link href="/courses">Explorar Cursos</Link>
               </Button>
             </div>
