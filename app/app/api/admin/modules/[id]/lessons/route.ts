@@ -8,7 +8,7 @@ import { db } from '@/lib/db'
 // GET /api/admin/modules/[moduleId]/lessons - Listar lecciones
 export async function GET(
   req: Request,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -21,7 +21,7 @@ export async function GET(
     }
 
     const lessons = await db.lesson.findMany({
-      where: { moduleId: params.moduleId },
+      where: { moduleId: params.id },
       include: {
         _count: {
           select: {
@@ -45,7 +45,7 @@ export async function GET(
 // POST /api/admin/modules/[moduleId]/lessons - Crear lección
 export async function POST(
   req: Request,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -76,7 +76,7 @@ export async function POST(
 
     // Verificar que el módulo existe
     const module = await db.module.findUnique({
-      where: { id: params.moduleId }
+      where: { id: params.id }
     })
 
     if (!module) {
@@ -88,7 +88,7 @@ export async function POST(
 
     // Obtener el siguiente orderIndex
     const lastLesson = await db.lesson.findFirst({
-      where: { moduleId: params.moduleId },
+      where: { id: params.id },
       orderBy: { orderIndex: 'desc' }
     })
 
@@ -100,7 +100,7 @@ export async function POST(
         content: content || null,
         vimeoVideoId: vimeoVideoId || null,
         durationSeconds: durationSeconds || null,
-        moduleId: params.moduleId,
+        moduleId: params.id,
         orderIndex,
         isFreePreview: isFreePreview || false,
         isPublished: false,
