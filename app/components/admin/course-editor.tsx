@@ -1,9 +1,10 @@
+// components/admin/course-editor.tsx - REEMPLAZAR COMPLETAMENTE
 'use client';
 
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Edit3, Trash2, ChevronDown, ChevronRight, Save } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import ModuleEditor from './module-editor';
 import LessonEditor from './lesson-editor';
 
@@ -52,19 +53,29 @@ interface CourseEditorProps {
 }
 
 export default function CourseEditor({ course: initialCourse, categories }: CourseEditorProps) {
-  const [course, setCourse] = useState(initialCourse);
+  const [course, setCourse] = useState<Course | null>(initialCourse || null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [view, setView] = useState<'course' | 'module' | 'lesson'>('course');
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
+  // Expandir todos los módulos al cargar
+  useEffect(() => {
+    if (course && course.modules && course.modules.length > 0) {
+      const allModuleIds = new Set(course.modules.map(m => m.id));
+      setExpandedModules(allModuleIds);
+    }
+  }, [course?.modules]);
+
   // Refrescar datos del curso
   const refreshCourse = async () => {
+    if (!course) return;
+    
     try {
       const response = await fetch(`/api/admin/courses/${course.id}`);
       if (response.ok) {
         const data = await response.json();
-        setCourse(data.course);
+        setCourse(data);
       }
     } catch (error) {
       console.error('Error refreshing course:', error);
@@ -115,7 +126,7 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
 
       if (response.ok) {
         toast.success('Módulo eliminado exitosamente');
-        refreshCourse();
+        await refreshCourse();
       } else {
         toast.error('Error al eliminar el módulo');
       }
@@ -125,19 +136,19 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
     }
   };
 
-  const handleDeleteLesson = async (lessonId: string, lessonName: string) => {
+  const handleDeleteLesson = async (id: string, lessonName: string) => {
     if (!confirm(`¿Estás seguro de que quieres eliminar la lección "${lessonName}"?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/lessons/${lessonId}`, {
+      const response = await fetch(`/api/admin/lessons/${id}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
         toast.success('Lección eliminada exitosamente');
-        refreshCourse();
+        await refreshCourse();
       } else {
         toast.error('Error al eliminar la lección');
       }
@@ -147,15 +158,27 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
     }
   };
 
+  // Loading state
+  if (!course) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando curso...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'module') {
     return (
       <ModuleEditor
         course={course}
         module={selectedModule}
         onBack={() => setView('course')}
-        onSaved={() => {
+        onSaved={async () => {
           setView('course');
-          refreshCourse();
+          await refreshCourse();
         }}
       />
     );
@@ -167,16 +190,16 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
         module={selectedModule!}
         lesson={selectedLesson}
         onBack={() => setView('course')}
-        onSaved={() => {
+        onSaved={async () => {
           setView('course');
-          refreshCourse();
+          await refreshCourse();
         }}
       />
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -235,7 +258,7 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
         </div>
 
         <div className="space-y-4">
-          {course.modules.length === 0 ? (
+          {!course.modules || course.modules.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                 <Plus className="h-8 w-8 text-gray-400" />
@@ -277,7 +300,7 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">
-                      {module.lessons.length} lecciones
+                      {module.lessons?.length || 0} lecciones
                     </span>
                     <button
                       onClick={() => handleEditModule(module)}
@@ -314,12 +337,12 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
                       </button>
                     </div>
 
-                    {module.lessons.length === 0 ? (
-                      <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                        <p className="text-sm">No hay lecciones en este módulo</p>
+                    {!module.lessons || module.lessons.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <p className="mb-2">No hay lecciones en este módulo</p>
                         <button
                           onClick={() => handleCreateLesson(module)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-1"
+                          className="text-blue-600 hover:text-blue-800 text-sm"
                         >
                           Crear primera lección
                         </button>
@@ -329,39 +352,36 @@ export default function CourseEditor({ course: initialCourse, categories }: Cour
                         {module.lessons.map((lesson, lessonIndex) => (
                           <div
                             key={lesson.id}
-                            className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-sm text-gray-500 w-6">
+                              <span className="text-sm text-gray-500 w-8">
                                 {lessonIndex + 1}.
                               </span>
-                              <span className="font-medium text-gray-900">{lesson.title}</span>
-                              <div className="flex items-center gap-2">
-                                {lesson.isFreePreview && (
-                                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                    Preview
+                              <div>
+                                <h5 className="font-medium text-gray-900">{lesson.title}</h5>
+                                <div className="flex items-center gap-3 mt-1">
+                                  {lesson.durationSeconds && (
+                                    <span className="text-xs text-gray-500">
+                                      {Math.ceil(lesson.durationSeconds / 60)} min
+                                    </span>
+                                  )}
+                                  {lesson.isFreePreview && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+                                      Vista previa
+                                    </span>
+                                  )}
+                                  <span className={`text-xs px-1 py-0.5 rounded ${
+                                    lesson.isPublished 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {lesson.isPublished ? 'Publicada' : 'Borrador'}
                                   </span>
-                                )}
-                                {lesson.vimeoVideoId && (
-                                  <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                                    Video
-                                  </span>
-                                )}
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  lesson.isPublished 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {lesson.isPublished ? 'Publicado' : 'Borrador'}
-                                </span>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {lesson.durationSeconds && (
-                                <span className="text-sm text-gray-500">
-                                  {Math.floor(lesson.durationSeconds / 60)}:{(lesson.durationSeconds % 60).toString().padStart(2, '0')}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleEditLesson(lesson, module)}
                                 className="text-blue-600 hover:text-blue-800 p-1"

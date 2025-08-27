@@ -16,7 +16,6 @@ interface CreateCourseFormProps {
   categories: Category[];
 }
 
-// ✅ FIX 1: Definir el tipo correctamente
 type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 export default function CreateCourseForm({ categories }: CreateCourseFormProps) {
@@ -24,15 +23,13 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  
-  // ✅ FIX 2: Añadir coverImage al formData
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: 0,
     level: 'BEGINNER' as CourseLevel,
     categoryId: '',
-    coverImage: '', // ✅ Añadir esta propiedad
+    coverImage: '',
     isPublished: false
   });
 
@@ -92,7 +89,6 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
       if (response.ok) {
         const data = await response.json();
         toast.success('Curso creado exitosamente');
-        // ✅ FIX 3: Usar data.course.id
         router.push(`/admin/courses/${data.course.id}/edit`);
       } else {
         const errorData = await response.json();
@@ -108,7 +104,6 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/courses"
@@ -124,7 +119,6 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
         <p className="text-gray-600">Complete la información básica del curso</p>
       </div>
 
-      {/* Form */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
@@ -190,7 +184,6 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
               <select
                 id="level"
                 value={formData.level}
-                // ✅ FIX 4: Cast correcto del tipo
                 onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as CourseLevel }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
@@ -230,7 +223,6 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
             </div>
           </div>
 
-          {/* Cover Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imagen de Portada
@@ -241,7 +233,7 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
                 <div className="flex text-sm text-gray-600">
                   <label
                     htmlFor="cover-image"
-                    className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
                   >
                     <span>Subir imagen</span>
                     <input
@@ -262,24 +254,18 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
               <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-16 h-10 bg-blue-100 rounded border border-blue-200 flex items-center justify-center">
+                    <div className="w-16 h-10 bg-blue-100 rounded flex items-center justify-center">
                       <Upload className="h-4 w-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-blue-900">
-                        {coverImageFile.name}
-                      </p>
-                      <p className="text-xs text-blue-700">
-                        {(coverImageFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                      <p className="text-sm font-medium text-blue-900">{coverImageFile.name}</p>
+                      <p className="text-xs text-blue-700">{(coverImageFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>
-                  {/* ✅ FIX 5: Botón para quitar imagen */}
                   <button
                     type="button"
                     onClick={() => setCoverImageFile(null)}
                     className="text-red-600 hover:text-red-800 p-1"
-                    title="Quitar imagen"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -289,10 +275,7 @@ export default function CreateCourseForm({ categories }: CreateCourseFormProps) 
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t">
-            <Link
-              href="/admin/courses"
-              className="px-6 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
+            <Link href="/admin/courses" className="px-6 py-2 text-gray-600 hover:text-gray-900 transition-colors">
               Cancelar
             </Link>
             <button

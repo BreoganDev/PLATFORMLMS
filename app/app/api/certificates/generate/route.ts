@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const completedLessons = await prisma.progress.count({
       where: {
         userId: session.user.id,
-        lessonId: { in: allLessons.map(l => l.id) },
+        id: { in: allLessons.map(l => l.id) },
         isCompleted: true
       }
     })

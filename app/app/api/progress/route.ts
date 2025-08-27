@@ -1,43 +1,36 @@
+// app/api/progress/route.ts
+export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { db } from '@/lib/db'
 
-export const dynamic = "force-dynamic";
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { lessonId, isCompleted, secondsWatched = 0 } = body
+    const { id, completed, secondsWatched } = await req.json()
 
-    if (!lessonId) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'Lesson ID is required' },
+        { error: 'ID de lección es requerido' },
         { status: 400 }
       )
     }
 
-    // Verify user has access to this lesson
-    const lesson = await prisma.lesson.findFirst({
-      where: {
-        id: lessonId,
+    // Verificar que la lección existe
+    const lesson = await db.lesson.findUnique({
+      where: { id: id },
+      include: {
         module: {
-          course: {
-            enrollments: {
-              some: {
-                userId: session.user.id,
-                status: 'ACTIVE'
-              }
+          include: {
+            course: {
+              select: { id: true }
             }
           }
         }
@@ -46,91 +39,56 @@ export async function POST(request: Request) {
 
     if (!lesson) {
       return NextResponse.json(
-        { error: 'Lesson not found or access denied' },
+        { error: 'Lección no encontrada' },
         { status: 404 }
       )
     }
 
-    // Update or create progress record
-    const progress = await prisma.progress.upsert({
+    // Verificar que el usuario está inscrito en el curso
+    const enrollment = await db.enrollment.findFirst({
+      where: {
+        userId: session.user.id,
+        courseId: lesson.module.course.id,
+        status: 'ACTIVE'
+      }
+    })
+
+    if (!enrollment && !lesson.isFreePreview) {
+      return NextResponse.json(
+        { error: 'No tienes acceso a esta lección' },
+        { status: 403 }
+      )
+    }
+
+    // Actualizar o crear progreso
+    const progress = await db.progress.upsert({
       where: {
         userId_lessonId: {
           userId: session.user.id,
-          lessonId
+          lessonId: id
         }
       },
       update: {
-        isCompleted: isCompleted || false,
-        secondsWatched: Math.max(secondsWatched, 0),
-        completedAt: isCompleted ? new Date() : null,
-        lastWatchedAt: new Date()
+        isCompleted: completed || false,
+        secondsWatched: secondsWatched || 0,
+        lastWatchedAt: new Date(),
+        ...(completed && { completedAt: new Date() })
       },
       create: {
         userId: session.user.id,
-        lessonId,
-        isCompleted: isCompleted || false,
-        secondsWatched: Math.max(secondsWatched, 0),
-        completedAt: isCompleted ? new Date() : null,
-        lastWatchedAt: new Date()
+        id: id,
+        isCompleted: completed || false,
+        secondsWatched: secondsWatched || 0,
+        lastWatchedAt: new Date(),
+        ...(completed && { completedAt: new Date() })
       }
     })
 
     return NextResponse.json(progress)
   } catch (error) {
-    console.error('Progress update error:', error)
+    console.error('Error updating progress:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const { searchParams } = new URL(request.url)
-    const courseId = searchParams.get('courseId')
-
-    if (!courseId) {
-      return NextResponse.json(
-        { error: 'Course ID is required' },
-        { status: 400 }
-      )
-    }
-
-    const progress = await prisma.progress.findMany({
-      where: {
-        userId: session.user.id,
-        lesson: {
-          module: {
-            courseId
-          }
-        }
-      },
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            durationSeconds: true
-          }
-        }
-      }
-    })
-
-    return NextResponse.json(progress)
-  } catch (error) {
-    console.error('Progress fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     )
   }

@@ -1,3 +1,4 @@
+// app/api/admin/modules/route.ts - API consolidada para módulos
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
@@ -5,24 +6,24 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// GET /api/admin/courses/[id]/modules - Listar módulos
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// GET /api/admin/modules - Listar todos los módulos (opcional)
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+
+    if (!session?.user?.id || (session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const modules = await db.module.findMany({
-      where: { courseId: params.id },
       include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true
+          }
+        },
         lessons: {
           orderBy: { orderIndex: 'asc' },
           select: {
@@ -35,7 +36,10 @@ export async function GET(
           }
         }
       },
-      orderBy: { orderIndex: 'asc' }
+      orderBy: [
+        { course: { title: 'asc' } },
+        { orderIndex: 'asc' }
+      ]
     })
 
     return NextResponse.json({ modules })
@@ -48,34 +52,27 @@ export async function GET(
   }
 }
 
-// POST /api/admin/courses/[id]/modules - Crear módulo
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// POST /api/admin/modules - Crear módulo (requiere courseId en el body)
+export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+
+    if (!session?.user?.id || (session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { title, description, isPublished } = body
+    const { title, description, courseId, isPublished } = await req.json()
 
-    if (!title) {
+    if (!title?.trim() || !courseId) {
       return NextResponse.json(
-        { error: 'El título es requerido' },
+        { error: 'Título y ID del curso son requeridos' },
         { status: 400 }
       )
     }
 
     // Verificar que el curso existe
     const course = await db.course.findUnique({
-      where: { id: params.id }
+      where: { id: courseId }
     })
 
     if (!course) {
@@ -85,9 +82,9 @@ export async function POST(
       )
     }
 
-    // Obtener el siguiente orderIndex
+    // Obtener el siguiente orden
     const lastModule = await db.module.findFirst({
-      where: { courseId: params.id },
+      where: { courseId },
       orderBy: { orderIndex: 'desc' }
     })
 
@@ -95,14 +92,23 @@ export async function POST(
 
     const module = await db.module.create({
       data: {
-        title,
-        description,
-        courseId: params.id,
+        title: title.trim(),
+        description: description?.trim() || null,
+        courseId,
         orderIndex,
         isPublished: isPublished || false
       },
       include: {
-        lessons: true
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true
+          }
+        },
+        lessons: {
+          orderBy: { orderIndex: 'asc' }
+        }
       }
     })
 
@@ -110,7 +116,7 @@ export async function POST(
   } catch (error) {
     console.error('Error creating module:', error)
     return NextResponse.json(
-      { error: 'Error al crear el módulo' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     )
   }

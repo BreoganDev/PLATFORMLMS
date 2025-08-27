@@ -89,7 +89,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
     userProgress = await prisma.progress.findMany({
       where: {
         userId: session.user.id,
-        lessonId: { in: allLessons.map(l => l.id) }
+        id: { in: allLessons.map(l => l.id) }
       }
     })
 

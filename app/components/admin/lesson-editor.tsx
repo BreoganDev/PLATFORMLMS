@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ArrowLeft, Save, Upload, FileText, Image as ImageIcon, Video, X, AlertCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
+import RichEditor from '@/components/ui/rich-editor';
 
 interface Module {
   id: string;
@@ -113,25 +114,39 @@ export default function LessonEditor({ module, lesson, onBack, onSaved }: Lesson
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      setError('El título es requerido');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
       const url = lesson 
         ? `/api/admin/lessons/${lesson.id}`
-        : `/api/admin/modules/${module.id}/lessons`;
+        : `/api/admin/lessons`;
       
       const method = lesson ? 'PUT' : 'POST';
+      
+      const payload = {
+        title: formData.title.trim(),
+        content: formData.content?.trim() || null,
+        vimeoVideoId: formData.vimeoVideoId?.trim() || null,
+        durationSeconds: formData.durationSeconds || null,
+        isFreePreview: formData.isFreePreview,
+        isPublished: formData.isPublished,
+        moduleId: module.id,
+        resources: formData.resources.length > 0 ? formData.resources : null
+      };
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          resources: formData.resources.length > 0 ? formData.resources : null
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -150,7 +165,7 @@ export default function LessonEditor({ module, lesson, onBack, onSaved }: Lesson
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -194,12 +209,27 @@ export default function LessonEditor({ module, lesson, onBack, onSaved }: Lesson
               />
             </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contenido de la Lección
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                Crea contenido rico con texto, imágenes, videos y enlaces
+              </p>
+              <RichEditor
+                content={formData.content}
+                onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                placeholder="Escribe el contenido de la lección aquí. Puedes añadir texto, imágenes, videos de YouTube y enlaces..."
+                className="min-h-[400px]"
+              />
+            </div>
+
             <div>
-              <label htmlFor="vimeo" className="block text-sm font-medium text-gray-700 mb-1">
-                ID del Video de Vimeo
+              <label htmlFor="vimeoVideoId" className="block text-sm font-medium text-gray-700 mb-1">
+                ID de Video Vimeo (opcional)
               </label>
               <input
-                id="vimeo"
+                id="vimeoVideoId"
                 type="text"
                 value={formData.vimeoVideoId}
                 onChange={(e) => setFormData(prev => ({ ...prev, vimeoVideoId: e.target.value }))}
@@ -207,13 +237,13 @@ export default function LessonEditor({ module, lesson, onBack, onSaved }: Lesson
                 placeholder="123456789"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Solo el ID numérico del video de Vimeo
+                Solo el ID numérico del video de Vimeo para el reproductor principal.
               </p>
             </div>
 
             <div>
               <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-                Duración
+                Duración (minutos:segundos)
               </label>
               <input
                 id="duration"
@@ -224,108 +254,177 @@ export default function LessonEditor({ module, lesson, onBack, onSaved }: Lesson
                   durationSeconds: parseDuration(e.target.value) 
                 }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="15:30 o 930"
+                placeholder="10:30"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Formato: MM:SS o segundos totales
+                Formato: MM:SS (ej: 5:30 para 5 minutos y 30 segundos)
               </p>
             </div>
+          </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="preview"
-                  checked={formData.isFreePreview}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isFreePreview: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="preview" className="text-sm font-medium text-gray-700">
-                  Vista previa gratuita
-                </label>
-              </div>
+          {/* Opciones */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <input
+                id="isFreePreview"
+                type="checkbox"
+                checked={formData.isFreePreview}
+                onChange={(e) => setFormData(prev => ({ ...prev, isFreePreview: e.target.checked }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isFreePreview" className="text-sm font-medium text-gray-700">
+                Vista previa gratuita
+              </label>
+              <span className="text-xs text-gray-500">
+                (Los usuarios no inscritos podrán ver esta lección)
+              </span>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="published"
-                  checked={formData.isPublished}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isPublished: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="published" className="text-sm font-medium text-gray-700">
-                  Publicar lección
-                </label>
-              </div>
+            <div className="flex items-center space-x-3">
+              <input
+                id="isPublished"
+                type="checkbox"
+                checked={formData.isPublished}
+                onChange={(e) => setFormData(prev => ({ ...prev, isPublished: e.target.checked }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isPublished" className="text-sm font-medium text-gray-700">
+                Publicar lección
+              </label>
+              <span className="text-xs text-gray-500">
+                (Solo las lecciones publicadas serán visibles para los estudiantes)
+              </span>
             </div>
           </div>
 
-          {/* Content */}
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-              Contenido de la Lección
-            </label>
-            <textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              rows={8}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Escribe el contenido de la lección. Puedes incluir descripciones, notas, transcripciones..."
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Este contenido aparecerá junto al video para ayudar a los estudiantes
+          {/* Recursos Adicionales */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Recursos Descargables</h3>
+            <p className="text-sm text-gray-500">
+              Sube archivos adicionales que los estudiantes puedan descargar (PDFs, documentos, etc.)
             </p>
+            
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Imágenes
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'image')}
+                    className="hidden"
+                    id="image-upload"
+                    disabled={uploading}
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {uploading ? 'Subiendo...' : 'Subir imagen'}
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  PDFs
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => handleFileUpload(e, 'pdf')}
+                    className="hidden"
+                    id="pdf-upload"
+                    disabled={uploading}
+                  />
+                  <label htmlFor="pdf-upload" className="cursor-pointer">
+                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {uploading ? 'Subiendo...' : 'Subir PDF'}
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Documentos
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                  <input
+                    type="file"
+                    accept=".doc,.docx,.txt"
+                    onChange={(e) => handleFileUpload(e, 'document')}
+                    className="hidden"
+                    id="doc-upload"
+                    disabled={uploading}
+                  />
+                  <label htmlFor="doc-upload" className="cursor-pointer">
+                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {uploading ? 'Subiendo...' : 'Subir documento'}
+                    </p>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de recursos subidos */}
+            {formData.resources.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Recursos subidos:</h4>
+                <div className="space-y-2">
+                  {formData.resources.map((resource, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {resource.type === 'image' && <ImageIcon className="h-5 w-5 text-blue-500" />}
+                        {resource.type === 'pdf' && <FileText className="h-5 w-5 text-red-500" />}
+                        {resource.type === 'document' && <FileText className="h-5 w-5 text-green-500" />}
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{resource.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(resource.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveResource(index)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Resources */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Recursos Adicionales
-            </label>
-            
-            {/* Upload buttons */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <label className="cursor-pointer bg-red-50 hover:bg-red-100 border border-red-200 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors">
-                <FileText className="h-5 w-5 text-red-600" />
-                <span className="text-sm text-red-700">PDF</span>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, 'pdf')}
-                  disabled={uploading}
-                />
-              </label>
-
-              <label className="cursor-pointer bg-blue-50 hover:bg-blue-100 border border-blue-200 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors">
-                <ImageIcon className="h-5 w-5 text-blue-600" />
-                <span className="text-sm text-blue-700">Imagen</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, 'image')}
-                  disabled={uploading}
-                />
-              </label>
-
-                            <label className="cursor-pointer bg-green-50 hover:bg-green-100 border border-green-200 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors">
-                              <FileText className="h-5 w-5 text-green-600" />
-                              <span className="text-sm text-green-700">Documento</span>
-                              <input
-                                type="file"
-                                accept=".doc,.docx,.txt"
-                                className="hidden"
-                                onChange={(e) => handleFileUpload(e, 'document')}
-                                disabled={uploading}
-                              />
-                            </label>
-                          </div>
-                          {/* You may have more code for listing resources, etc. */}
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                );
-              }
+          {/* Botones */}
+          <div className="flex items-center justify-end gap-4 pt-6 border-t">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={isLoading}
+              className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {isLoading ? 'Guardando...' : (lesson ? 'Actualizar Lección' : 'Crear Lección')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

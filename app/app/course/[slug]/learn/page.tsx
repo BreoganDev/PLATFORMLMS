@@ -23,7 +23,18 @@ export default async function LearnPage({ params }: { params: { slug: string } }
         include: {
           lessons: {
             where: { isPublished: true },
-            orderBy: { orderIndex: 'asc' }
+            orderBy: { orderIndex: 'asc' },
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              vimeoVideoId: true,
+              durationSeconds: true,
+              orderIndex: true,
+              isFreePreview: true,
+              isPublished: true,
+              resources: true
+            }
           }
         },
         orderBy: { orderIndex: 'asc' }
@@ -81,7 +92,7 @@ export default async function LearnPage({ params }: { params: { slug: string } }
     <VideoPlayer 
       course={course} 
       userProgress={progress}
-      initialLessonId={firstLesson.id}
+      initialid={firstLesson.id}
     />
   )
 }

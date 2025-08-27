@@ -45,7 +45,7 @@ export const lessonSchema = z.object({
 })
 
 export const progressSchema = z.object({
-  lessonId: z.string().min(1),
+  id: z.string().min(1),
   secondsWatched: z.number().int().min(0),
   isCompleted: z.boolean().optional(),
 })

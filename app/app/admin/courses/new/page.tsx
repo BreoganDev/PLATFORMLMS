@@ -1,10 +1,15 @@
-
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { BookOpen, ArrowLeft, Save, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 
 export default function NewCoursePage() {
   const [title, setTitle] = useState('')
@@ -12,23 +17,33 @@ export default function NewCoursePage() {
   const [price, setPrice] = useState('')
   const [vimeoVideoId, setVimeoVideoId] = useState('')
   const [isPublished, setIsPublished] = useState(false)
-  const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Redirect if not admin
+  if (status === 'loading') {
+    return <div>Cargando...</div>
+  }
+
+  if (!session?.user || session?.user?.role !== 'ADMIN') {
+    router.push('/login')
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     if (!title.trim()) {
-      setError('El título es requerido')
+      toast.error('El título es requerido')
       setIsLoading(false)
       return
     }
 
     if (!price || isNaN(Number(price)) || Number(price) < 0) {
-      setError('Ingresa un precio válido')
+      toast.error('Ingresa un precio válido')
       setIsLoading(false)
       return
     }
@@ -53,10 +68,11 @@ export default function NewCoursePage() {
         throw new Error(data.error || 'Error al crear el curso')
       }
 
+      toast.success('Curso creado exitosamente')
       router.push('/admin')
       router.refresh()
     } catch (error: any) {
-      setError(error.message)
+      toast.error(error.message)
     } finally {
       setIsLoading(false)
     }
@@ -66,142 +82,124 @@ export default function NewCoursePage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">LMS Admin</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <Link href="/admin" className="flex items-center text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Volver al Admin
+              </Link>
             </div>
-            <Link
-              href="/admin"
-              className="text-gray-600 hover:text-blue-600 inline-flex items-center gap-1"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver
-            </Link>
-          </nav>
+            <h1 className="text-xl font-semibold text-gray-900 flex items-center">
+              <BookOpen className="h-6 w-6 mr-2" />
+              Crear Nuevo Curso
+            </h1>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Crear Nuevo Curso
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Completa la información básica para tu nuevo curso
-          </p>
-        </div>
+      {/* Form */}
+      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg">
+          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                Título del Curso *
+              </label>
+              <Input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Nutrición en el Embarazo"
+                className="mt-1"
+                required
+              />
+            </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-xl shadow-sm border">
-          <div className="p-6">
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-                <AlertCircle className="h-5 w-5" />
-                <span>{error}</span>
-              </div>
-            )}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                Descripción
+              </label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe de qué trata el curso..."
+                rows={4}
+                className="mt-1"
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Título del Curso *
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Introducción a React.js"
-                />
-              </div>
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-gray-700">
+                Precio (€) *
+              </label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+                required
+              />
+            </div>
 
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe de qué trata tu curso..."
-                />
-              </div>
+            <div>
+              <label htmlFor="vimeoVideoId" className="block text-sm font-medium text-gray-700">
+                ID del Video de Vimeo (Trailer)
+              </label>
+              <Input
+                id="vimeoVideoId"
+                type="text"
+                value={vimeoVideoId}
+                onChange={(e) => setVimeoVideoId(e.target.value)}
+                placeholder="Ej: 123456789"
+                className="mt-1"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Solo el ID numérico del video, no la URL completa
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio (USD) *
-                  </label>
-                  <input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="29.99"
-                  />
-                </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isPublished"
+                checked={isPublished}
+                onCheckedChange={setIsPublished}
+              />
+              <label htmlFor="isPublished" className="text-sm font-medium text-gray-700">
+                Publicar curso inmediatamente
+              </label>
+            </div>
 
-                <div>
-                  <label htmlFor="vimeoVideoId" className="block text-sm font-medium text-gray-700 mb-2">
-                    ID de Video Vimeo
-                  </label>
-                  <input
-                    id="vimeoVideoId"
-                    type="text"
-                    value={vimeoVideoId}
-                    onChange={(e) => setVimeoVideoId(e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="123456789"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Obtén el ID numérico de la URL de Vimeo
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  id="isPublished"
-                  type="checkbox"
-                  checked={isPublished}
-                  onChange={(e) => setIsPublished(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700">
-                  Publicar curso inmediatamente
-                </label>
-              </div>
-
-              <div className="flex items-center gap-4 pt-6 border-t">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                >
-                  <Save className="h-5 w-5" />
-                  {isLoading ? 'Creando...' : 'Crear Curso'}
-                </button>
-                
-                <Link
-                  href="/admin"
-                  className="text-gray-600 hover:text-gray-800 px-6 py-3 transition-colors"
-                >
-                  Cancelar
-                </Link>
-              </div>
-            </form>
-          </div>
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/admin')}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Crear Curso
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

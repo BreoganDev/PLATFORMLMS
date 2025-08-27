@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// GET /api/admin/modules/[moduleId]/lessons - Listar lecciones
+// GET /api/admin/modules/[id]/lessons
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -22,13 +22,6 @@ export async function GET(
 
     const lessons = await db.lesson.findMany({
       where: { moduleId: params.id },
-      include: {
-        _count: {
-          select: {
-            progress: true
-          }
-        }
-      },
       orderBy: { orderIndex: 'asc' }
     })
 
@@ -42,7 +35,7 @@ export async function GET(
   }
 }
 
-// POST /api/admin/modules/[moduleId]/lessons - Crear lección
+// POST /api/admin/modules/[id]/lessons
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
@@ -64,6 +57,7 @@ export async function POST(
       vimeoVideoId, 
       durationSeconds, 
       isFreePreview,
+      isPublished,
       resources 
     } = body
 
@@ -74,21 +68,9 @@ export async function POST(
       )
     }
 
-    // Verificar que el módulo existe
-    const module = await db.module.findUnique({
-      where: { id: params.id }
-    })
-
-    if (!module) {
-      return NextResponse.json(
-        { error: 'Módulo no encontrado' },
-        { status: 404 }
-      )
-    }
-
     // Obtener el siguiente orderIndex
     const lastLesson = await db.lesson.findFirst({
-      where: { id: params.id },
+      where: { moduleId: params.id },
       orderBy: { orderIndex: 'desc' }
     })
 
@@ -103,7 +85,7 @@ export async function POST(
         moduleId: params.id,
         orderIndex,
         isFreePreview: isFreePreview || false,
-        isPublished: false,
+        isPublished: isPublished || false,
         resources: resources || null
       }
     })

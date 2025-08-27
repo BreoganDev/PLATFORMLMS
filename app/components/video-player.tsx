@@ -2,8 +2,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Play, Pause, SkipBack, SkipForward, BookOpen, CheckCircle, Clock, ArrowLeft } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, BookOpen, CheckCircle, Clock, ArrowLeft, FileText, Download } from 'lucide-react'
 import Link from 'next/link'
+import ContentViewer from '@/components/ui/content-viewer'
 
 interface Lesson {
   id: string
@@ -13,6 +14,7 @@ interface Lesson {
   durationSeconds?: number | null
   orderIndex: number
   isFreePreview: boolean
+  resources?: any
 }
 
 interface Module {
@@ -31,7 +33,6 @@ interface Course {
 
 interface Progress {
   id: string
-  lessonId: string
   isCompleted: boolean
   secondsWatched: number
   completedAt?: Date | null
@@ -40,11 +41,11 @@ interface Progress {
 interface VideoPlayerProps {
   course: Course
   userProgress: Progress[]
-  initialLessonId: string
+  initialid: string
 }
 
-export default function VideoPlayer({ course, userProgress, initialLessonId }: VideoPlayerProps) {
-  const [currentLessonId, setCurrentLessonId] = useState(initialLessonId)
+export default function VideoPlayer({ course, userProgress, initialid }: VideoPlayerProps) {
+  const [currentid, setCurrentid] = useState(initialid)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Get all lessons in order
@@ -55,16 +56,16 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
     }))
   )
 
-  const currentLesson = allLessons.find(l => l.id === currentLessonId)
-  const currentIndex = allLessons.findIndex(l => l.id === currentLessonId)
+  const currentLesson = allLessons.find(l => l.id === currentid)
+  const currentIndex = allLessons.findIndex(l => l.id === currentid)
   const nextLesson = allLessons[currentIndex + 1]
   const prevLesson = allLessons[currentIndex - 1]
 
-  const getLessonProgress = (lessonId: string) => {
-    return userProgress.find(p => p.lessonId === lessonId)
+  const getLessonProgress = (id: string) => {
+    return userProgress.find(p => p.id === id)
   }
 
-  const markAsCompleted = async (lessonId: string) => {
+  const markAsCompleted = async (id: string) => {
     try {
       await fetch('/api/progress', {
         method: 'POST',
@@ -72,7 +73,7 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          lessonId,
+          id,
           isCompleted: true,
         }),
       })
@@ -89,28 +90,44 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
     <div className="min-h-screen bg-black flex">
       {/* Main Video Area */}
       <div className={`flex-1 flex flex-col ${sidebarOpen ? 'mr-80' : ''} transition-all duration-300`}>
-        {/* Video Container */}
-        <div className="flex-1 relative bg-black">
+        {/* Content Container */}
+        <div className="flex-1 relative bg-gray-50 overflow-y-auto">
           {currentLesson.vimeoVideoId ? (
-            <iframe
-              src={`https://player.vimeo.com/video/${currentLesson.vimeoVideoId}?autoplay=0&title=0&byline=0&portrait=0&color=ffffff`}
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-              title={currentLesson.title}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center text-white">
-                <Play className="h-24 w-24 mx-auto mb-6 text-gray-400" />
-                <h3 className="text-xl font-semibold mb-2">Sin video disponible</h3>
-                <p className="text-gray-400">Esta lección aún no tiene contenido de video.</p>
-              </div>
+            <div className="bg-black">
+              <iframe
+                src={`https://player.vimeo.com/video/${currentLesson.vimeoVideoId}?autoplay=0&title=0&byline=0&portrait=0&color=ffffff`}
+                width="100%"
+                height="500"
+                frameBorder="0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                className="w-full"
+                title={currentLesson.title}
+              />
             </div>
-          )}
+          ) : null}
+          
+          {/* Lesson Content */}
+          <div className="max-w-4xl mx-auto p-6">
+            {(currentLesson.content || (currentLesson as any).resources) ? (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <ContentViewer 
+                  content={currentLesson.content}
+                  resources={(currentLesson as any).resources as any[]}
+                />
+              </div>
+            ) : !currentLesson.vimeoVideoId ? (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Contenido en preparación</h3>
+                  <p className="text-gray-600">
+                    El contenido de esta lección está siendo preparado. Vuelve pronto para acceder al material.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* Video Controls */}
@@ -133,7 +150,7 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => prevLesson && setCurrentLessonId(prevLesson.id)}
+                onClick={() => prevLesson && setCurrentid(prevLesson.id)}
                 disabled={!prevLesson}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
@@ -142,7 +159,7 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
               </button>
               
               <button
-                onClick={() => nextLesson && setCurrentLessonId(nextLesson.id)}
+                onClick={() => nextLesson && setCurrentid(nextLesson.id)}
                 disabled={!nextLesson}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
@@ -194,12 +211,12 @@ export default function VideoPlayer({ course, userProgress, initialLessonId }: V
                     {module.lessons.map((lesson) => {
                       const progress = getLessonProgress(lesson.id)
                       const isCompleted = progress?.isCompleted || false
-                      const isCurrent = lesson.id === currentLessonId
+                      const isCurrent = lesson.id === currentid
 
                       return (
                         <button
                           key={lesson.id}
-                          onClick={() => setCurrentLessonId(lesson.id)}
+                          onClick={() => setCurrentid(lesson.id)}
                           className={`w-full text-left p-3 rounded-lg transition-colors ${
                             isCurrent 
                               ? 'bg-blue-50 border border-blue-200' 
